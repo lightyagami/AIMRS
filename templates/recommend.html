@@ -4,22 +4,25 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <!-- Bootstrap -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style.css') }}">
 </head>
 
 <body>
-  <div class="results">
+  <div class="results mt-5 pt-4">
     <center>
-      <h2 id="name" class="text-uppercase mb-4">{{title}}</h2>
+      <h2 id="name" class="text-uppercase mb-2" style="letter-spacing: 0.1em; font-weight: 800;">{{title}}</h2>
+      <div style="width: 60px; height: 4px; background: var(--primary-color); border-radius: 2px; margin-bottom: 40px;"></div>
     </center>
   </div>
 
-  <div id="mycontent">
+  <div id="mycontent" class="container">
     <div id="mcontent">
       <div class="poster-lg">
         <img class="poster" height="450" width="300" src="{{poster}}" alt="{{title}}">
@@ -28,13 +31,13 @@
         <img class="poster" height="400" width="250" src="{{poster}}" alt="{{title}}">
       </div>
       <div id="details">
-        <h6 id="title"><strong>TITLE:</strong> {{title}}</h6>
-        <h6 id="overview" style="max-width: 90%;"><strong>OVERVIEW:</strong><br><span style="color: var(--text-muted);">{{overview}}</span></h6>
-        <h6 id="vote_average"><strong>RATING:</strong> {{vote_average}}/10 ({{vote_count}} votes)</h6>
-        <h6 id="genres"><strong>GENRE:</strong> {{genres}}</h6>
-        <h6 id="date"><strong>RELEASE DATE:</strong> {{release_date}}</h6>
-        <h6 id="runtime"><strong>RUNTIME:</strong> {{runtime}}</h6>
-        <h6 id="status"><strong>STATUS:</strong> {{status}}</h6>
+        <h6 id="title"><strong>Title</strong> {{title}}</h6>
+        <h6 id="overview"><strong>Overview</strong><span style="color: var(--text-muted); font-weight: 400; display: block; margin-top: 8px;">{{overview}}</span></h6>
+        <h6 id="vote_average"><strong>Rating</strong> <i class="fa fa-star text-warning mr-1"></i> {{vote_average}}/10 ({{vote_count}} votes)</h6>
+        <h6 id="genres"><strong>Genre</strong> {{genres}}</h6>
+        <h6 id="date"><strong>Release Date</strong> {{release_date}}</h6>
+        <h6 id="runtime"><strong>Runtime</strong> {{runtime}}</h6>
+        <h6 id="status"><strong>Status</strong> <span class="badge badge-dark px-2 py-1 ml-1" style="font-size: 0.75rem;">{{status}}</span></h6>
       </div>
     </div>
   </div>
@@ -42,23 +45,27 @@
   {% for name, details in cast_details.items() %}
   <div class="modal fade" id="{{details[0]}}" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-      <div class="modal-content" style="background-color: #1a1a1a; color: white; border: 1px solid var(--glass-border); border-radius: 20px;">
-        <div class="modal-header" style="border-bottom: 1px solid var(--glass-border);">
-          <h5 class="modal-title">{{name}}</h5>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title font-weight-bold">{{name}}</h5>
           <button type="button" class="close" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true" style="color: white">&times;</span>
           </button>
         </div>
         <div class="modal-body">
           <div class="row">
-            <div class="col-md-4">
-              <img class="profile-pic img-fluid" src="{{details[1]}}" alt="{{name}}" style="border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.5);">
+            <div class="col-md-5">
+              <img class="profile-pic img-fluid" src="{{details[1]}}" alt="{{name}}" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
             </div>
-            <div class="col-md-8">
-              <p><strong>Birthday:</strong> {{details[2]}}</p>
-              <p><strong>Place of Birth:</strong> {{details[3]}}</p>
-              <p><strong>Biography:</strong></p>
-              <p style="color: var(--text-muted); max-height: 300px; overflow-y: auto;">{{details[4]}}</p>
+            <div class="col-md-7">
+              <div class="mb-3">
+                <span class="text-muted text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.1em; font-weight: 600;">Personal Details</span>
+              </div>
+              <p><strong><i class="fa fa-birthday-cake mr-2 text-muted"></i> Birthday:</strong> {{details[2]}}</p>
+              <p><strong><i class="fa fa-map-marker-alt mr-2 text-muted"></i> Place of Birth:</strong> {{details[3]}}</p>
+              <hr style="border-color: var(--glass-border);">
+              <p class="font-weight-bold text-uppercase mb-2" style="font-size: 0.75rem; letter-spacing: 0.1em;">Biography</p>
+              <p style="color: var(--text-muted); max-height: 250px; overflow-y: auto; font-size: 0.95rem; line-height: 1.6;">{{details[4]}}</p>
             </div>
           </div>
         </div>
@@ -68,18 +75,18 @@
   {% endfor %}
 
   {% if casts|length > 1 %}
-  <div class="container-fluid mt-5">
+  <div class="container-fluid mt-5 px-md-5">
     <center>
-      <h3 class="text-uppercase" style="color: var(--primary-color);">Top Cast</h3>
-      <p class="text-muted">(Click on the cast to know more)</p>
+      <h3 class="section-title text-uppercase">Lead Cast</h3>
+      <p class="text-muted">Ensemble that brought the story to life</p>
     </center>
-    <div class="movie-content">
+    <div class="movie-content mt-4">
       {% for name, details in casts.items() %}
-      <div class="castcard card" title="Click to know more about {{name}}" data-toggle="modal" data-target="#{{details[0]}}">
+      <div class="castcard card" title="View Biography" data-toggle="modal" data-target="#{{details[0]}}">
         <img class="card-img-top cast-img" src="{{details[2]}}" alt="{{name}}">
         <div class="card-body">
-          <h5 class="card-title">{{name}}</h5>
-          <p class="card-text text-muted" style="font-size: 0.9rem;">{{details[1]}}</p>
+          <h5 class="card-title text-center">{{name}}</h5>
+          <p class="card-text text-center text-muted" style="font-size: 0.85rem; font-weight: 500;">{{details[1]}}</p>
         </div>
       </div>
       {% endfor %}
@@ -87,30 +94,31 @@
   </div>
   {% endif %}
 
-  <div class="container-fluid mt-5">
+  <div class="container-fluid mt-5 px-md-5">
     {% if reviews %}
     <center>
-      <h3 class="text-uppercase" style="color: var(--primary-color);">User Reviews</h3>
+      <h3 class="section-title text-uppercase">Sentiment Analysis of Reviews</h3>
+      <p class="text-muted">Real-time audience feedback analyzed by NLP model</p>
     </center>
-    <div class="row justify-content-center mt-4">
-      <div class="col-md-10">
-        <div class="table-responsive">
+    <div class="row justify-content-center mt-5">
+      <div class="col-lg-10">
+        <div class="table-responsive shadow-lg">
           <table class="table text-white">
             <thead>
               <tr>
-                <th scope="col" style="width: 75%">Review Content</th>
-                <th scope="col" class="text-center">Sentiment</th>
+                <th scope="col" style="width: 75%">Review Transcript</th>
+                <th scope="col" class="text-center">ML Sentiment Score</th>
               </tr>
             </thead>
             <tbody>
               {% for review, status in reviews.items() %}
               <tr>
-                <td style="font-size: 0.95rem; line-height: 1.6;">{{review}}</td>
+                <td style="font-size: 0.95rem; line-height: 1.7; color: #ddd;">"{{review}}"</td>
                 <td class="text-center">
                   {% if status =='Good' %}
-                  <span class="badge badge-success px-3 py-2">Good &#128515;</span>
+                  <span class="badge badge-success px-3 py-2">POSITIVE <i class="fa fa-smile-beam ml-1"></i></span>
                   {% else %}
-                  <span class="badge badge-danger px-3 py-2">Bad &#128534;</span>
+                  <span class="badge badge-danger px-3 py-2">NEGATIVE <i class="fa fa-frown ml-1"></i></span>
                   {% endif %}
                 </td>
               </tr>
@@ -122,23 +130,24 @@
     </div>
     {% else %}
     <center>
-      <h3 class="mt-5">No reviews available for this movie yet.</h3>
+      <h3 class="mt-5 text-muted">Insufficient review data for this title.</h3>
     </center>
     {% endif %}
   </div>
 
   {% if movie_cards|length > 1 %}
-  <div class="container-fluid mt-5 mb-5">
+  <div class="container-fluid mt-5 mb-5 px-md-5">
     <center>
-      <h3 class="text-uppercase" style="color: var(--primary-color);">Recommended for You</h3>
-      <p class="text-muted">(Click any movie to see details)</p>
+      <h3 class="section-title text-uppercase">Cinematic Discoveries</h3>
+      <p class="text-muted">Selected via Content-Based Filtering algorithm</p>
     </center>
-    <div class="movie-content">
+    <div class="movie-content mt-4">
       {% for poster, title in movie_cards.items() %}
-      <div class="card" title="{{title}}" data-movie-id="{{poster.split('/')[-1].split('.')[0]}}" onclick="recommendcard(this)">
+      <div class="card" title="{{title}}" onclick="recommendcard(this)">
         <img class="card-img-top" src="{{poster}}" alt="{{title}}">
         <div class="card-body">
-          <h5 class="card-title">{{title|title}}</h5>
+          <h5 class="card-title text-center">{{title|title}}</h5>
+          <p class="text-muted text-center mb-0" style="font-size: 0.75rem;">VIEW DETAILS</p>
         </div>
       </div>
       {% endfor %}

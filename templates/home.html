@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <title>Movie Recommendation System</title>
+  <title>MovieRec | Advanced Recommendation Engine</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
   <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Font Awesome -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
   <!-- Bootstrap -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
 
-  <!-- Auto Complete -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@7.2.0/dist/css/autoComplete.min.css">
+  <!-- Custom CSS -->
   <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style.css') }}">
   
   <script type="text/javascript">
@@ -26,42 +27,50 @@
 <body id="content">
 
   <div class="ml-container">
-    <h1>Movie Recommendation System</h1>
+    <h1 class="text-uppercase">Movie Recommendation System</h1>
+    <p class="text-muted" style="font-size: 1.1rem; margin-top: -10px; max-width: 600px;">
+        Harnessing Content-Based Filtering and Sentiment Analysis for an immersive cinematic discovery experience.
+    </p>
     
-    <div class="form-group shadow-textarea" style="width: 100%; max-width: 600px;">
-        <input type="text" name="movie" class="movie form-control" id="autoComplete" autocomplete="off" placeholder="Search for a movie..." required="required" />
+    <div class="search-wrapper">
+        <input type="text" name="movie" class="movie form-control" id="autoComplete" autocomplete="off" placeholder="Search for a movie (e.g., Inception)..." required="required" />
     </div>
 
     <div class="form-group">
-      <button class="btn btn-primary movie-button" disabled="true">Enter</button>
+      <button class="btn btn-primary movie-button" disabled="true">
+        <i class="fa fa-search mr-2"></i> Find Recommendations
+      </button>
     </div>
   </div>
 
   <div id="loader">
-    <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;">
-      <span class="sr-only">Loading...</span>
+    <div class="spinner-border" role="status" style="width: 3rem; height: 3rem; color: var(--primary-color);">
+      <span class="sr-only">Analyzing...</span>
     </div>
   </div>
   
   <div class="fail text-center mt-4">
-    <h3>Sorry! The movie you requested is not in our database.</h3>
-    <p>Please check the spelling or try another movie.</p>
+    <div class="alert alert-dark d-inline-block px-5 py-4" style="border-radius: 20px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);">
+        <i class="fa fa-exclamation-triangle fa-2x mb-3" style="color: var(--primary-color);"></i>
+        <h3>Movie not found in our database</h3>
+        <p class="text-muted mb-0">Please check the spelling or try searching for a different title.</p>
+    </div>
   </div>
 
-  <div class="results container-fluid">
-    <!-- Results will be injected here -->
+  <div class="results container-fluid px-md-5">
     {% if trending %}
-    <div class="trending-section mt-5">
-      <center>
-        <h3 class="text-uppercase" style="color: var(--primary-color);">Trending Movies</h3>
-        <p class="text-muted">Top picks for you today</p>
-      </center>
+    <div class="trending-section mt-4">
+      <div class="text-center mb-5">
+        <h3 class="section-title text-uppercase">Trending This Week</h3>
+        <p class="text-muted">Global top picks curated in real-time</p>
+      </div>
       <div class="movie-content">
         {% for movie in trending %}
         <div class="card" title="{{movie.title}}" onclick="recommendcard(this)">
           <img class="card-img-top" src="{{movie.poster}}" alt="{{movie.title}}">
           <div class="card-body">
             <h5 class="card-title">{{movie.title|title}}</h5>
+            <p class="text-muted mb-0" style="font-size: 0.8rem;">Click to explore</p>
           </div>
         </div>
         {% endfor %}

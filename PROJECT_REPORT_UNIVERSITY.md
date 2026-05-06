@@ -46,6 +46,12 @@ To provide value to the user, real-time reviews are analyzed for sentiment.
 *   **Model:** Logistic Regression (achieving ~88-90% accuracy).
 *   **Pipeline:** When a user views a movie, the system fetches the latest reviews via API and runs them through the trained model to provide an instant "Good/Bad" rating.
 
+4.3 Robust Data Retrieval Strategies
+To ensure a consistent and high-quality user experience, the system implements several advanced data handling strategies:
+*   **Localized Title Resolution:** The system forces `language=en-US` across all TMDB API calls and prioritizes the `title` attribute over `original_title`. This ensures that regional films (e.g., Bollywood or European cinema) are displayed with their English titles and descriptions, maintaining accessibility for a global audience.
+*   **Multi-Source Review Aggregation:** Recognizing that the TMDB API often has sparse review data, a **Hybrid Review Scraper** was implemented. If TMDB returns insufficient reviews, the backend automatically triggers a fallback scraper that targets the movie's specific IMDB entry (`imdb_id`). This ensures a robust dataset for the Sentiment Analysis engine.
+*   **User-Agent Spoofing & Resilience:** The IMDB scraper utilizes randomized headers to mimic real browser behavior, ensuring high reliability and preventing service blocks during data extraction.
+
 ---
 
 ## 5. Development & Testing

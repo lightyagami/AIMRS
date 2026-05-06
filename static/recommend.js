@@ -62,7 +62,6 @@ function load_details(my_api_key,title){
   $.ajax({
     type: 'GET',
     url:'https://api.themoviedb.org/3/search/movie?api_key='+my_api_key+'&query='+title+'&language=en-US',
-
     success: function(movie){
       if(movie.results.length<1){
         $('.fail').css('display','block');
@@ -75,7 +74,7 @@ function load_details(my_api_key,title){
         $('.fail').css('display','none');
         $('.results').delay(1000).css('display','block');
         var movie_id = movie.results[0].id;
-        var movie_title = movie.results[0].original_title;
+        var movie_title = movie.results[0].title;
         movie_recs(movie_title,movie_id,my_api_key);
       }
     },
@@ -131,6 +130,22 @@ function get_movie_details(movie_id,my_api_key,arr,movie_title) {
   });
 }
 
+// get the reviews of the movie
+function get_reviews(movie_id, my_api_key) {
+  var reviews = [];
+  $.ajax({
+    type: 'GET',
+    url: 'https://api.themoviedb.org/3/movie/' + movie_id + '/reviews?api_key=' + my_api_key + '&language=en-US',
+    async: false,
+    success: function(res) {
+      for (var i in res.results) {
+        reviews.push(res.results[i].content);
+      }
+    }
+  });
+  return reviews;
+}
+
 // passing all the details to python's flask for displaying and scraping the movie reviews using imdb id
 function show_details(movie_details,arr,movie_title,my_api_key,movie_id){
   var imdb_id = movie_details.imdb_id;
@@ -158,6 +173,9 @@ function show_details(movie_details,arr,movie_title,my_api_key,movie_id){
   movie_cast = get_movie_cast(movie_id,my_api_key);
   
   ind_cast = get_individual_cast(movie_cast,my_api_key);
+
+  // FETCH REVIEWS IN BROWSER
+  var reviews_from_browser = get_reviews(movie_id, my_api_key);
   
   details = {
     'title':movie_title,
@@ -180,6 +198,7 @@ function show_details(movie_details,arr,movie_title,my_api_key,movie_id){
       'movie_id':movie_id,
       'rec_movies':JSON.stringify(arr),
       'rec_posters':JSON.stringify(arr_poster),
+      'browser_reviews': JSON.stringify(reviews_from_browser) // SEND TO BACKEND
   }
 
   $.ajax({

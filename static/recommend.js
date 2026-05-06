@@ -100,8 +100,8 @@ function movie_recs(movie_title,movie_id,my_api_key){
         $('.results').css('display','block');
         var movie_arr = recs.split('---');
         var arr = [];
-        for(const movie in movie_arr){
-          arr.push(movie_arr[movie]);
+        for(var i=0; i < movie_arr.length; i++){
+          arr.push(movie_arr[i]);
         }
         get_movie_details(movie_id,my_api_key,arr,movie_title);
       }
@@ -273,22 +273,23 @@ function get_movie_cast(movie_id,my_api_key){
 // getting posters for all the recommended movies
 function get_movie_posters(arr,my_api_key){
   var arr_poster_list = []
-  for(var m in arr) {
-    var title = arr[m].split(' (')[0]; // Strip score for search
+  for(var i=0; i < arr.length; i++) {
+    // arr[i] is "Title (Score%)|||SharedTags"
+    var title_part = arr[i].split('|||')[0]; 
+    var title = title_part.split(' (')[0]; 
     $.ajax({
       type:'GET',
       url:'https://api.themoviedb.org/3/search/movie?api_key='+my_api_key+'&query='+title,
       async: false,
       success: function(m_data){
-        if(m_data.results.length > 0) {
+        if(m_data.results && m_data.results.length > 0) {
           arr_poster_list.push('https://image.tmdb.org/t/p/original'+m_data.results[0].poster_path);
         } else {
-          arr_poster_list.push('../static/image.jpg'); // Fallback if no poster found
+          arr_poster_list.push('../static/image.jpg'); 
         }
       },
       error: function(){
-        alert("Invalid Request!");
-        $("#loader").delay(500).fadeOut();
+        arr_poster_list.push('../static/image.jpg');
       },
     })
   }

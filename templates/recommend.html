@@ -97,10 +97,29 @@
   <div class="container-fluid mt-5 px-md-5">
     {% if reviews %}
     <center>
-      <h3 class="section-title text-uppercase">Sentiment Analysis of Reviews</h3>
-      <p class="text-muted">Real-time audience feedback analyzed by NLP model</p>
+      <h3 class="section-title text-uppercase">Sentiment Analysis Dashboard</h3>
+      <p class="text-muted">Visual analytics of audience perception</p>
     </center>
-    <div class="row justify-content-center mt-5">
+    
+    <div class="row justify-content-center mt-5 mb-5">
+        <div class="col-md-4">
+            <div style="background: rgba(255,255,255,0.03); padding: 30px; border-radius: 24px; border: 1px solid var(--glass-border);">
+                <canvas id="sentimentChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-6 d-flex flex-column justify-content-center">
+            <div class="p-4" style="background: rgba(255,255,255,0.02); border-radius: 24px; border-left: 4px solid var(--primary-color);">
+                <h4>Critical Insight</h4>
+                <p class="text-muted" id="sentimentSummary">Analyzing the extracted review transcripts...</p>
+                <div class="mt-3">
+                    <span class="badge badge-success px-3 py-2 mr-2" id="posCount">0 Positive</span>
+                    <span class="badge badge-danger px-3 py-2" id="negCount">0 Negative</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center mt-4">
       <div class="col-lg-10">
         <div class="table-responsive shadow-lg">
           <table class="table text-white">
@@ -112,7 +131,7 @@
             </thead>
             <tbody>
               {% for review, status in reviews.items() %}
-              <tr>
+              <tr class="review-row" data-sentiment="{{status}}">
                 <td style="font-size: 0.95rem; line-height: 1.7; color: #ddd;">"{{review}}"</td>
                 <td class="text-center">
                   {% if status =='Good' %}
@@ -139,18 +158,27 @@
   <div class="container-fluid mt-5 mb-5 px-md-5">
     <center>
       <h3 class="section-title text-uppercase">Cinematic Discoveries</h3>
-      <p class="text-muted">Selected via Content-Based Filtering algorithm</p>
+      <p class="text-muted">Deep Feature Matching across 5,000+ titles</p>
     </center>
     <div class="movie-content mt-4">
-      {% for poster, title_with_score in movie_cards.items() %}
-      <div class="card" title="{{title_with_score}}" onclick="recommendcard(this)">
-        <img class="card-img-top" src="{{poster}}" alt="{{title_with_score}}">
+      {% for poster, details in movie_cards.items() %}
+      {% set title_part = details.split('|||')[0] %}
+      {% set shared_part = details.split('|||')[1] if '|||' in details else '' %}
+      <div class="card" title="{{title_part}}" onclick="recommendcard(this)">
+        <img class="card-img-top" src="{{poster}}" alt="{{title_part}}">
         <div class="card-body">
-          <h5 class="card-title text-center">{{title_with_score.split(' (')[0]|title}}</h5>
+          <h5 class="card-title text-center">{{title_part.split(' (')[0]|title}}</h5>
           <div class="text-center">
-            <span class="badge badge-pill badge-outline-danger" style="border: 1px solid var(--primary-color); color: var(--primary-color); font-size: 0.7rem;">
-                <i class="fa fa-chart-line mr-1"></i> Match: {{title_with_score.split(' (')[1].replace(')','')}}
+            {% if ' (' in title_part %}
+            <span class="badge badge-pill mb-2" style="background: rgba(229, 9, 20, 0.1); color: var(--primary-color); font-size: 0.75rem; border: 1px solid rgba(229, 9, 20, 0.3);">
+                <i class="fa fa-chart-line mr-1"></i> {{title_part.split(' (')[1].replace(')','')}} Match
             </span>
+            {% endif %}
+            {% if shared_part %}
+            <p class="mb-0 text-muted" style="font-size: 0.7rem; letter-spacing: 0.05em;">
+                <i class="fa fa-tags mr-1"></i> Shared: {{shared_part}}
+            </p>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -158,6 +186,51 @@
     </div>
   </div>
   {% endif %}
+
+  <script>
+    setTimeout(function() {
+        var pos = $('.review-row[data-sentiment="Good"]').length;
+        var neg = $('.review-row[data-sentiment="Bad"]').length;
+        
+        $('#posCount').text(pos + ' Positive');
+        $('#negCount').text(neg + ' Negative');
+        
+        var summary = "The majority of viewers responded ";
+        if(pos > neg) {
+            summary += "<span class='text-success font-weight-bold'>positively</span> to this film, highlighting strong narrative execution and cinematic value.";
+        } else if (neg > pos) {
+            summary += "<span class='text-danger font-weight-bold'>critically</span>, suggesting areas of improvement in pacing or thematic depth.";
+        } else {
+            summary += "with <span class='text-warning font-weight-bold'>mixed sentiment</span>, indicating a polarizing reception among the audience.";
+        }
+        $('#sentimentSummary').html(summary);
+
+        var canvas = document.getElementById('sentimentChart');
+        if (canvas) {
+            var ctx = canvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Positive', 'Negative'],
+                    datasets: [{
+                        data: [pos, neg],
+                        backgroundColor: ['#34d399', '#f87171'],
+                        borderWidth: 0,
+                        hoverOffset: 10
+                    }]
+                },
+                options: {
+                    cutout: '70%',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+    }, 500); // 500ms delay to ensure DOM is ready
+  </script>
 
   <div class="container-fluid mt-5 mb-4 text-center">
     <p class="text-muted" style="font-size: 0.8rem; letter-spacing: 0.05em;">

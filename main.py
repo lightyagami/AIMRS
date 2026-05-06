@@ -41,22 +41,28 @@ def rcmd(m):
         return 'Sorry! The movie you requested is not in our database.'
     else:
         movie_indx = data.loc[data['movie_title_clean']==m].index[0]
-        # Get similarities for this movie
+        # Get the attributes of the searched movie
+        base_comb = set(data['comb'][movie_indx].split())
+        
         lst = list(enumerate(similarity[movie_indx]))
-        # Sort by similarity score
         lst = sorted(lst, key=lambda x: x[1], reverse=True)
         
-        # Get top 11 (including itself)
         top_matches = lst[0:11] 
         results = []
         for i in range(len(top_matches)):
             idx = top_matches[i][0]
             if idx != movie_indx:
-                # Calculate Match Percentage
                 score = round(top_matches[i][1] * 100, 2)
                 title = data['movie_title'][idx]
-                # Identify shared attributes (XAI)
-                results.append(f"{title} ({score}%)")
+                
+                # Identify shared attributes
+                rec_comb = set(data['comb'][idx].split())
+                shared = base_comb.intersection(rec_comb)
+                # Filter out small words and limit to top 3 matches
+                shared = [word.capitalize() for word in shared if len(word) > 3][:3]
+                shared_str = ", ".join(shared)
+                
+                results.append(f"{title} ({score}%)|||{shared_str}")
         return results
     
 # converting list of string to list (eg. "["abc","def"]" to ["abc","def"])

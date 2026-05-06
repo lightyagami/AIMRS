@@ -142,18 +142,29 @@
       <p class="text-muted">Selected via Content-Based Filtering algorithm</p>
     </center>
     <div class="movie-content mt-4">
-      {% for poster, title in movie_cards.items() %}
-      <div class="card" title="{{title}}" onclick="recommendcard(this)">
-        <img class="card-img-top" src="{{poster}}" alt="{{title}}">
+      {% for poster, title_with_score in movie_cards.items() %}
+      <div class="card" title="{{title_with_score}}" onclick="recommendcard(this)">
+        <img class="card-img-top" src="{{poster}}" alt="{{title_with_score}}">
         <div class="card-body">
-          <h5 class="card-title text-center">{{title|title}}</h5>
-          <p class="text-muted text-center mb-0" style="font-size: 0.75rem;">VIEW DETAILS</p>
+          <h5 class="card-title text-center">{{title_with_score.split(' (')[0]|title}}</h5>
+          <div class="text-center">
+            <span class="badge badge-pill badge-outline-danger" style="border: 1px solid var(--primary-color); color: var(--primary-color); font-size: 0.7rem;">
+                <i class="fa fa-chart-line mr-1"></i> Match: {{title_with_score.split(' (')[1].replace(')','')}}
+            </span>
+          </div>
         </div>
       </div>
       {% endfor %}
     </div>
   </div>
   {% endif %}
+
+  <div class="container-fluid mt-5 mb-4 text-center">
+    <p class="text-muted" style="font-size: 0.8rem; letter-spacing: 0.05em;">
+        <i class="fa fa-microchip mr-2"></i> Inference Latency: {{latency}}s | 
+        Algorithm: Content-Based Filtering (Cosine Similarity)
+    </p>
+  </div>
 
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
   <script type="text/javascript" src="{{url_for('static', filename='recommend.js')}}"></script>

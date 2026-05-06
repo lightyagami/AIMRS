@@ -38,18 +38,26 @@ def rcmd(m):
         data, similarity = create_similarity()
     
     if m not in data['movie_title_clean'].unique():
-        return('Sorry! The movie you requested is not in our database. Please check the spelling or try with some other movies')
+        return 'Sorry! The movie you requested is not in our database.'
     else:
         movie_indx = data.loc[data['movie_title_clean']==m].index[0]
+        # Get similarities for this movie
         lst = list(enumerate(similarity[movie_indx]))
-        lst = sorted(lst, key = lambda x:x[1] ,reverse=True)
-        lst = lst[0:11] 
-        l = []
-        for i in range(len(lst)):
-            if lst[i][0] != movie_indx:
-                a = lst[i][0]
-                l.append(data['movie_title'][a])
-        return l
+        # Sort by similarity score
+        lst = sorted(lst, key=lambda x: x[1], reverse=True)
+        
+        # Get top 11 (including itself)
+        top_matches = lst[0:11] 
+        results = []
+        for i in range(len(top_matches)):
+            idx = top_matches[i][0]
+            if idx != movie_indx:
+                # Calculate Match Percentage
+                score = round(top_matches[i][1] * 100, 2)
+                title = data['movie_title'][idx]
+                # Identify shared attributes (XAI)
+                results.append(f"{title} ({score}%)")
+        return results
     
 # converting list of string to list (eg. "["abc","def"]" to ["abc","def"])
 def convert_to_list(my_list):
@@ -104,6 +112,8 @@ def similarity_route():
 
 @app.route("/recommend",methods=["POST"])
 def recommend():
+    import time
+    start_time = time.time()
     global data, similarity
     # getting data from AJAX request
     title = request.form['title']
@@ -239,9 +249,12 @@ def recommend():
 
     movie_reviews = {reviews_list[i]: reviews_status[i] for i in range(len(reviews_status))}     
 
+    latency = round(time.time() - start_time, 4)
+    print(f"DEBUG: Recommendation Engine Latency: {latency}s for movie_id: {movie_id}")
+
     return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,
         vote_count=vote_count,release_date=release_date,runtime=runtime,status=status,genres=genres,
-        movie_cards=movie_cards,reviews=movie_reviews,casts=casts,cast_details=cast_details)
+        movie_cards=movie_cards,reviews=movie_reviews,casts=casts,cast_details=cast_details, latency=latency)
 
 if __name__ == '__main__':
     app.run(debug=True)

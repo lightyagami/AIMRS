@@ -27,10 +27,9 @@ $(function() {
 // will be invoked when clicking on the recommended movies
 function recommendcard(e){
   var my_api_key = '71bdf22d8b06fde7b7b67d170d00b0c8';
-  var title = e.getAttribute('title'); 
-  // We already have the correct title from our database, so we skip search/movie
-  // and go straight to getting details and recommendations.
-  // We just need the movie_id from TMDB to get the details.
+  var title_with_score = e.getAttribute('title');
+  var title = title_with_score.split(' (')[0]; // Strip the score for API search
+  
   $.ajax({
     type: 'GET',
     url:'https://api.themoviedb.org/3/search/movie?api_key='+my_api_key+'&query='+title+'&language=en-US',
@@ -46,7 +45,6 @@ function recommendcard(e){
         $('.fail').css('display','none');
         $('.results').delay(1000).css('display','block');
         var movie_id = movie.results[0].id;
-        // CRITICAL: Use the title from the card (our DB), not TMDB's original_title
         movie_recs(title, movie_id, my_api_key);
       }
     },
@@ -276,12 +274,17 @@ function get_movie_cast(movie_id,my_api_key){
 function get_movie_posters(arr,my_api_key){
   var arr_poster_list = []
   for(var m in arr) {
+    var title = arr[m].split(' (')[0]; // Strip score for search
     $.ajax({
       type:'GET',
-      url:'https://api.themoviedb.org/3/search/movie?api_key='+my_api_key+'&query='+arr[m],
+      url:'https://api.themoviedb.org/3/search/movie?api_key='+my_api_key+'&query='+title,
       async: false,
       success: function(m_data){
-        arr_poster_list.push('https://image.tmdb.org/t/p/original'+m_data.results[0].poster_path);
+        if(m_data.results.length > 0) {
+          arr_poster_list.push('https://image.tmdb.org/t/p/original'+m_data.results[0].poster_path);
+        } else {
+          arr_poster_list.push('../static/image.jpg'); // Fallback if no poster found
+        }
       },
       error: function(){
         alert("Invalid Request!");

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Movie Recommendation System</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+
+  <!-- Bootstrap -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+  <!-- Auto Complete -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@7.2.0/dist/css/autoComplete.min.css">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='style.css') }}">
+  
+  <script type="text/javascript">
+    var films = {{suggestions|tojson}};
+  </script>
+</head>
+
+<body id="content">
+
+  <div class="ml-container">
+    <h1>Movie Recommendation System</h1>
+    
+    <div class="form-group shadow-textarea" style="width: 100%; max-width: 600px;">
+        <input type="text" name="movie" class="movie form-control" id="autoComplete" autocomplete="off" placeholder="Search for a movie..." required="required" />
+    </div>
+
+    <div class="form-group">
+      <button class="btn btn-primary movie-button" disabled="true">Enter</button>
+    </div>
+  </div>
+
+  <div id="loader">
+    <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;">
+      <span class="sr-only">Loading...</span>
+    </div>
+  </div>
+  
+  <div class="fail text-center mt-4">
+    <h3>Sorry! The movie you requested is not in our database.</h3>
+    <p>Please check the spelling or try another movie.</p>
+  </div>
+
+  <div class="results container-fluid">
+    <!-- Results will be injected here -->
+    {% if trending %}
+    <div class="trending-section mt-5">
+      <center>
+        <h3 class="text-uppercase" style="color: var(--primary-color);">Trending Movies</h3>
+        <p class="text-muted">Top picks for you today</p>
+      </center>
+      <div class="movie-content">
+        {% for movie in trending %}
+        <div class="card" title="{{movie.title}}" onclick="recommendcard(this)">
+          <img class="card-img-top" src="{{movie.poster}}" alt="{{movie.title}}">
+          <div class="card-body">
+            <h5 class="card-title">{{movie.title|title}}</h5>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+		
+  <script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@7.2.0/dist/js/autoComplete.min.js"></script>
+  <script type="text/javascript" src="{{url_for('static', filename='autocomplete.js')}}"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script type="text/javascript" src="{{url_for('static', filename='recommend.js')}}"></script>
+
+</body>
+</html>

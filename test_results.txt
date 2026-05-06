@@ -1,0 +1,19 @@
+/home/venomsnake/Downloads/rancode/recomm/test_suite.py:13: ResourceWarning: unclosed file <_io.BufferedReader name='nlp_model.pkl'>
+  cls.clf = pickle.load(open('nlp_model.pkl', 'rb'))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/home/venomsnake/Downloads/rancode/recomm/test_suite.py:14: ResourceWarning: unclosed file <_io.BufferedReader name='tranform.pkl'>
+  cls.vectorizer = pickle.load(open('tranform.pkl', 'rb'))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+.....
+----------------------------------------------------------------------
+Ran 5 tests in 0.332s
+
+OK
+Starting Movie Recommendation System Test Suite...
+==================================================
+[PASS] Utility Function: String-to-list conversion is accurate.
+[PASS] Error Handling: System correctly identified an invalid movie title.
+
+[PASS] Recommendation Logic: 'The Avengers' returned 10 similar movies.
+[PASS] Sentiment Analysis: Negative review correctly classified.
+[PASS] Sentiment Analysis: Positive review correctly classified.

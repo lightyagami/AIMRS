@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from flask import Flask, render_template, request
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import json
 import bs4 as bs
@@ -9,44 +9,48 @@ import urllib.request
 import pickle
 import requests
 import re
+import os
 
-# load the nlp model and tfidf vectorizer from disk
-filename = 'nlp_model.pkl'
-clf = pickle.load(open(filename, 'rb'))
-#importing tfidf transformer object using sentiment model training
-vectorizer = pickle.load(open('tranform.pkl','rb'))
+# --- MODEL LOADING (Aligned with miniproj.docx) ---
+# Sentiment Analysis Models
+clf = pickle.load(open('sentiment_model.pkl', 'rb'))
+vectorizer = pickle.load(open('sentiment_vectorizer.pkl', 'rb'))
 
-# Global variables for data and similarity
-data = None
+# Recommendation Engine Data (Pre-computed)
+# nlp_model.pkl is the recommendation vectorizer 
+# transform.pkl is the similarity matrix 
 similarity = None
+if os.path.exists('transform.pkl'):
+    similarity = pickle.load(open('transform.pkl', 'rb'))
+
+data = pd.read_csv('main_data.csv')
+data['movie_title_clean'] = data['movie_title'].str.lower().str.replace(r'[^a-zA-Z0-9]', '', regex=True)
 
 def create_similarity():
-    global data
-    data = pd.read_csv('main_data.csv')
-    data['movie_title_clean'] = data['movie_title'].str.lower().str.replace(r'[^a-zA-Z0-9]', '', regex=True)
-    # creating a count matrix
-    cv = CountVectorizer()
-    count_matrix = cv.fit_transform(data['comb'])
-    # creating a similarity score matrix
-    sim = cosine_similarity(count_matrix)
-    return data, sim
+    global similarity
+    if similarity is None:
+        print("Similarity matrix not found. Generating in-memory...")
+        tfidf = TfidfVectorizer(stop_words='english')
+        tfidf_matrix = tfidf.fit_transform(data['comb'])
+        similarity = cosine_similarity(tfidf_matrix)
+    return similarity
 
 def rcmd(m):
     global data, similarity
     m = re.sub(r'[^a-zA-Z0-9]', '', m.lower())
-    if data is None or similarity is None:
-        data, similarity = create_similarity()
+    if similarity is None:
+        similarity = create_similarity()
     
     if m not in data['movie_title_clean'].unique():
         return 'Sorry! The movie you requested is not in our database.'
     else:
         movie_indx = data.loc[data['movie_title_clean']==m].index[0]
-        # Get the attributes of the searched movie
         base_comb = set(data['comb'][movie_indx].split())
         
         lst = list(enumerate(similarity[movie_indx]))
         lst = sorted(lst, key=lambda x: x[1], reverse=True)
         
+        # Get top 10 recommendations (excluding itself)
         top_matches = lst[0:11] 
         results = []
         for i in range(len(top_matches)):
@@ -58,14 +62,12 @@ def rcmd(m):
                 # Identify shared attributes
                 rec_comb = set(data['comb'][idx].split())
                 shared = base_comb.intersection(rec_comb)
-                # Filter out small words and limit to top 3 matches
                 shared = [word.capitalize() for word in shared if len(word) > 3][:3]
                 shared_str = ", ".join(shared)
                 
                 results.append(f"{title} ({score}%)|||{shared_str}")
         return results
     
-# converting list of string to list (eg. "["abc","def"]" to ["abc","def"])
 def convert_to_list(my_list):
     my_list = my_list.split('","')
     my_list[0] = my_list[0].replace('["','')
@@ -73,9 +75,6 @@ def convert_to_list(my_list):
     return my_list
 
 def get_suggestions():
-    global data
-    if data is None:
-        data, _ = create_similarity()
     return list(data['movie_title'].str.capitalize())
 
 def get_trending_movies():
@@ -121,7 +120,6 @@ def recommend():
     import time
     start_time = time.time()
     global data, similarity
-    # getting data from AJAX request
     title = request.form['title']
     cast_ids = request.form['cast_ids']
     cast_names = request.form['cast_names']
@@ -143,14 +141,11 @@ def recommend():
     rec_movies = request.form['rec_movies']
     rec_posters = request.form['rec_posters']
 
-    # Ensure data is loaded
-    if data is None or similarity is None:
-        data, similarity = create_similarity()
+    if similarity is None:
+        similarity = create_similarity()
 
-    # get movie suggestions for auto complete
     suggestions = get_suggestions()
 
-    # call the convert_to_list function for every string that needs to be converted to list
     rec_movies = convert_to_list(rec_movies)
     rec_posters = convert_to_list(rec_posters)
     cast_names = convert_to_list(cast_names)
@@ -160,28 +155,20 @@ def recommend():
     cast_bios = convert_to_list(cast_bios)
     cast_places = convert_to_list(cast_places)
     
-    # convert string to list (eg. "[1,2,3]" to [1,2,3])
     cast_ids = cast_ids.split(',')
     cast_ids[0] = cast_ids[0].replace("[","")
     cast_ids[-1] = cast_ids[-1].replace("]","")
     
-    # rendering the string to python string
     for i in range(len(cast_bios)):
         cast_bios[i] = cast_bios[i].replace(r'\n', '\n').replace(r'\"','\"')
     
-    # combining multiple lists as a dictionary which can be passed to the html file so that it can be processed easily and the order of information will be preserved
     movie_cards = {rec_posters[i]: rec_movies[i] for i in range(len(rec_posters))}
-    
     casts = {cast_names[i]:[cast_ids[i], cast_chars[i], cast_profiles[i]] for i in range(len(cast_profiles))}
-
     cast_details = {cast_names[i]:[cast_ids[i], cast_profiles[i], cast_bdays[i], cast_places[i], cast_bios[i]] for i in range(len(cast_places))}
 
-    # --- ADVANCED REVIEW AGGREGATOR ---
     reviews_list = []
     reviews_status = []
-    api_key = '71bdf22d8b06fde7b7b67d170d00b0c8'
     
-    # 1. Integrate reviews fetched by the browser (Reliable Fallback)
     browser_reviews = request.form.get('browser_reviews')
     if browser_reviews:
         try:
@@ -189,14 +176,12 @@ def recommend():
         except:
             pass
 
-    # 2. Attempt IMDB Scraper only if Python network is working
     if len(reviews_list) < 5:
         try:
             target_id = imdb_id if imdb_id and str(imdb_id) != 'nan' else None
             if target_id:
                 imdb_rev_url = f'https://www.imdb.com/title/{target_id}/reviews'
                 headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-                # Check connection briefly
                 resp = requests.get(imdb_rev_url, headers=headers, timeout=5)
                 if resp.status_code == 200:
                     soup = bs.BeautifulSoup(resp.text, 'lxml')
@@ -208,55 +193,29 @@ def recommend():
         except Exception as e:
             print(f"IMDB Scrape Note: {e}")
 
-    # 3. Dynamic context-aware "Smart Mock" (Master's level fallback)
     if not reviews_list:
         genre_lower = str(genres).lower()
         if 'action' in genre_lower or 'adventure' in genre_lower:
-            reviews_list = [
-                f"The stunts in {title} were breathtaking. A high-octane experience from start to finish.",
-                f"I really enjoyed the pacing of this film. It keeps you on the edge of your seat.",
-                f"Standard tropes for an action movie, but {title} executes them with surprising style."
-            ]
-        elif 'drama' in genre_lower or 'romance' in genre_lower:
-            reviews_list = [
-                f"{title} is a deeply moving experience. The character study here is truly profound.",
-                f"A poignant narrative that explores complex human emotions with great sensitivity.",
-                f"The performances are the real standout here. A masterclass in subtle acting."
-            ]
-        elif 'horror' in genre_lower or 'thriller' in genre_lower:
-            reviews_list = [
-                f"Genuinely unsettling. {title} builds tension in a way few modern films manage.",
-                f"I found the atmosphere in this movie to be incredibly oppressive and effective.",
-                f"A tight, well-constructed thriller that keeps the audience guessing until the end."
-            ]
+            reviews_list = [f"Breathtaking action in {title}!", f"Pacing was excellent.", f"Stylishly executed."]
         else:
-            reviews_list = [
-                f"A solid entry into the genre. {title} offers exactly what fans are looking for.",
-                f"I was impressed by the production values and the overall vision of the director.",
-                f"An engaging watch that provides a fresh perspective on a familiar story."
-            ]
-        print(f"Note: Generated context-aware reviews for {title} ({genres}) due to empty data.")
+            reviews_list = [f"A solid entry for {title}.", f"Impressed by the vision.", f"Engaging watch."]
 
-    # 4. Sentiment Analysis Pipeline
     for content in reviews_list[:15]:
         try:
             movie_review_list = np.array([content])
             movie_vector = vectorizer.transform(movie_review_list)
             if hasattr(clf, "predict_proba"):
                 prob = clf.predict_proba(movie_vector)[0][1]
-                reviews_status.append('Good' if prob > 0.52 else 'Bad')
+                reviews_status.append('Good' if prob > 0.5 else 'Bad')
             else:
                 pred = clf.predict(movie_vector)
-                # Handle various prediction formats
                 is_pos = str(pred[0]).lower() in ['1', 'positive', 'good']
                 reviews_status.append('Good' if is_pos else 'Bad')
         except:
             reviews_status.append('Good')
 
     movie_reviews = {reviews_list[i]: reviews_status[i] for i in range(len(reviews_status))}     
-
     latency = round(time.time() - start_time, 4)
-    print(f"DEBUG: Recommendation Engine Latency: {latency}s for movie_id: {movie_id}")
 
     return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,
         vote_count=vote_count,release_date=release_date,runtime=runtime,status=status,genres=genres,

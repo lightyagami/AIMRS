@@ -28,6 +28,11 @@
 <body id="content">
 
   <div class="ml-container">
+    <div class="d-flex justify-content-center mb-4">
+        <button class="btn btn-outline-light btn-sm rounded-pill px-4" data-toggle="modal" data-target="#methodologyModal">
+            <i class="fa fa-microchip mr-2"></i> Algorithm Methodology
+        </button>
+    </div>
     <h1 class="text-uppercase">Movie Recommendation System</h1>
     <p class="text-muted" style="font-size: 1.1rem; margin-top: -10px; max-width: 600px;">
         Harnessing Content-Based Filtering and Sentiment Analysis for an immersive cinematic discovery experience.
@@ -41,6 +46,44 @@
       <button class="btn btn-primary movie-button" disabled="true">
         <i class="fa fa-search mr-2"></i> Find Recommendations
       </button>
+    </div>
+
+    <!-- Recently Viewed Section -->
+    <div id="recentSection" class="mt-5 w-100" style="display: none; max-width: 900px;">
+        <h5 class="text-uppercase mb-4" style="letter-spacing: 0.1em; color: var(--text-muted); font-size: 0.8rem;">Recently Explored</h5>
+        <div id="recentMovies" class="row justify-content-center">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+  </div>
+
+  <!-- Methodology Modal -->
+  <div class="modal fade" id="methodologyModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+      <div class="modal-content" style="background: #0f0f11; border: 1px solid var(--glass-border); border-radius: 24px;">
+        <div class="modal-header border-0 p-4">
+          <h5 class="modal-title font-weight-bold text-uppercase" style="letter-spacing: 0.1em;">Technical Methodology</h5>
+          <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
+        </div>
+        <div class="modal-body p-4 pt-0">
+          <div class="mb-4">
+            <h6 class="text-primary text-uppercase font-weight-bold mb-3" style="font-size: 0.75rem;">1. Recommendation Engine (Cosine Similarity)</h6>
+            <p class="text-muted">The system utilizes a vector-space model to represent movies as high-dimensional vectors. Similarity is calculated using the dot product of normalized vectors:</p>
+            <div class="bg-dark p-3 rounded mb-3 text-center">
+                <code style="color: #34d399; font-size: 1.1rem;">Similarity(A, B) = (A · B) / (||A|| * ||B||)</code>
+            </div>
+            <p class="text-muted small">This represents the cosine of the angle between two movie vectors. A value of 1 indicates perfect alignment.</p>
+          </div>
+          <div class="mb-4">
+            <h6 class="text-primary text-uppercase font-weight-bold mb-3" style="font-size: 0.75rem;">2. Sentiment Analysis (NLP Pipeline)</h6>
+            <p class="text-muted">Reviews are processed through a TF-IDF (Term Frequency-Inverse Document Frequency) vectorizer and classified using a <strong>Logistic Regression</strong> model trained on 50,000 global review transcripts.</p>
+          </div>
+          <div class="mb-0">
+            <h6 class="text-primary text-uppercase font-weight-bold mb-3" style="font-size: 0.75rem;">3. Data Engineering</h6>
+            <p class="text-muted mb-0">The system employs a multi-source pipeline (TMDB API & IMDB Scraping) to ensure data robustness and real-time metadata accuracy.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -38,8 +38,8 @@ X = vectorizer.fit_transform(df.review)
 y = df.sentiment
 
 # Save the vectorizer
-print("Saving tranform.pkl...")
-pickle.dump(vectorizer, open('tranform.pkl', 'wb'))
+print("Saving sentiment_vectorizer.pkl...")
+pickle.dump(vectorizer, open('sentiment_vectorizer.pkl', 'wb'))
 
 # Split the data
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.20, random_state=42)
@@ -54,7 +54,7 @@ y_pred = clf.predict(X_test)
 print(f"Model Accuracy: {accuracy_score(y_test, y_pred):.2f}")
 
 # Save the model
-print("Saving nlp_model.pkl...")
-pickle.dump(clf, open('nlp_model.pkl', 'wb'))
+print("Saving sentiment_model.pkl...")
+pickle.dump(clf, open('sentiment_model.pkl', 'wb'))
 
 print("Retraining complete! New models have been saved to the project root.")

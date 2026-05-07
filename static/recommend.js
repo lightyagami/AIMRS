@@ -1,4 +1,7 @@
 $(function() {
+  // Load Recently Viewed on Startup
+  displayRecentlyViewed();
+
   // Button will be disabled until we type anything inside the input field
   const source = document.getElementById('autoComplete');
   const inputHandler = function(e) {
@@ -211,6 +214,7 @@ function show_details(movie_details,arr,movie_title,my_api_key,movie_id){
       $('.results').html(response);
       $('#autoComplete').val('');
       $(window).scrollTop(0);
+      saveToRecent(movie_title, poster);
     }
   });
 }
@@ -294,4 +298,36 @@ function get_movie_posters(arr,my_api_key){
     })
   }
   return arr_poster_list;
+}
+
+function saveToRecent(title, poster) {
+    let recent = JSON.parse(localStorage.getItem('recentMovies') || '[]');
+    // Avoid duplicates
+    recent = recent.filter(m => m.title !== title);
+    recent.unshift({title, poster});
+    // Keep only last 4
+    recent = recent.slice(0, 4);
+    localStorage.setItem('recentMovies', JSON.stringify(recent));
+    displayRecentlyViewed();
+}
+
+function displayRecentlyViewed() {
+    let recent = JSON.parse(localStorage.getItem('recentMovies') || '[]');
+    if (recent.length > 0) {
+        $('#recentSection').fadeIn();
+        let html = '';
+        recent.forEach(m => {
+            html += `
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="card h-100" style="cursor:pointer; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 16px; transition: 0.3s;" title="${m.title}" onclick="recommendcard(this)">
+                        <img src="${m.poster}" class="card-img-top" style="height: 120px; object-fit: cover; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                        <div class="p-2 text-center">
+                            <span style="font-size: 0.7rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: white;">${m.title}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        $('#recentMovies').html(html);
+    }
 }

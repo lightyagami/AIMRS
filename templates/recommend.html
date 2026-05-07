@@ -38,6 +38,12 @@
         <h6 id="date"><strong>Release Date</strong> {{release_date}}</h6>
         <h6 id="runtime"><strong>Runtime</strong> {{runtime}}</h6>
         <h6 id="status"><strong>Status</strong> <span class="badge badge-dark px-2 py-1 ml-1" style="font-size: 0.75rem;">{{status}}</span></h6>
+        
+        <div class="mt-4 d-flex">
+            <button id="watchlistBtn" class="btn btn-outline-light" onclick="toggleWatchlist('{{title}}', '{{poster}}')">
+                <i class="fa fa-heart mr-2"></i> ADD TO WATCHLIST
+            </button>
+        </div>
       </div>
     </div>
   </div>
@@ -180,7 +186,10 @@
             {% endif %}
             {% if shared_part %}
             <p class="mb-0 text-muted" style="font-size: 0.7rem; letter-spacing: 0.05em;">
-                <i class="fa fa-tags mr-1"></i> Shared: {{shared_part}}
+                <i class="fa fa-tags mr-1"></i> Shared: 
+                {% for tag in shared_part.split(', ') %}
+                <span class="badge badge-dark tag-badge" style="cursor: pointer; background: rgba(255,255,255,0.05); transition: 0.3s;" onclick="event.stopPropagation(); tagSearch(this.innerText)">{{tag}}</span>
+                {% endfor %}
             </p>
             {% endif %}
           </div>
@@ -192,7 +201,16 @@
   {% endif %}
 
   <script>
+    function checkWatchlist() {
+        let watchlist = JSON.parse(localStorage.getItem('watchlistMovies') || '[]');
+        let title = "{{title}}";
+        if (watchlist.some(m => m.title === title)) {
+            $('#watchlistBtn').html('<i class="fa fa-check mr-2"></i> IN WATCHLIST').removeClass('btn-outline-light').addClass('btn-danger');
+        }
+    }
+
     setTimeout(function() {
+        checkWatchlist();
         var pos = $('.review-row[data-sentiment="Good"]').length;
         var neg = $('.review-row[data-sentiment="Bad"]').length;
         

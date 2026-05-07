@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import json
@@ -17,21 +17,23 @@ clf = pickle.load(open('sentiment_model.pkl', 'rb'))
 vectorizer = pickle.load(open('sentiment_vectorizer.pkl', 'rb'))
 
 # Recommendation Engine Data (Pre-computed)
-# nlp_model.pkl is the recommendation vectorizer 
-# transform.pkl is the similarity matrix 
 similarity = None
+tfidf_rec = None
 if os.path.exists('transform.pkl'):
     similarity = pickle.load(open('transform.pkl', 'rb'))
+if os.path.exists('nlp_model.pkl'):
+    tfidf_rec = pickle.load(open('nlp_model.pkl', 'rb'))
 
 data = pd.read_csv('main_data.csv')
 data['movie_title_clean'] = data['movie_title'].str.lower().str.replace(r'[^a-zA-Z0-9]', '', regex=True)
 
 def create_similarity():
-    global similarity
-    if similarity is None:
-        print("Similarity matrix not found. Generating in-memory...")
-        tfidf = TfidfVectorizer(stop_words='english')
-        tfidf_matrix = tfidf.fit_transform(data['comb'])
+    global similarity, tfidf_rec
+    if similarity is None or tfidf_rec is None:
+        print("Models not found. Generating in-memory...")
+        from sklearn.feature_extraction.text import CountVectorizer
+        tfidf_rec = CountVectorizer(stop_words='english')
+        tfidf_matrix = tfidf_rec.fit_transform(data['comb'])
         similarity = cosine_similarity(tfidf_matrix)
     return similarity
 
@@ -50,7 +52,6 @@ def rcmd(m):
         lst = list(enumerate(similarity[movie_indx]))
         lst = sorted(lst, key=lambda x: x[1], reverse=True)
         
-        # Get top 10 recommendations (excluding itself)
         top_matches = lst[0:11] 
         results = []
         for i in range(len(top_matches)):

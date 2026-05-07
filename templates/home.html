@@ -42,15 +42,28 @@
         <input type="text" name="movie" class="movie form-control" id="autoComplete" autocomplete="off" placeholder="Search for a movie (e.g., Inception)..." required="required" />
     </div>
 
-    <div class="form-group">
+    <div class="form-group mb-5">
       <button class="btn btn-primary movie-button" disabled="true">
         <i class="fa fa-search mr-2"></i> Find Recommendations
       </button>
     </div>
 
-    <!-- Recently Viewed Section -->
+    <!-- Watchlist Section -->
+    <div id="watchlistSection" class="mt-5 w-100" style="display: none; max-width: 900px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="text-uppercase mb-0" style="letter-spacing: 0.1em; color: var(--text-muted); font-size: 0.8rem;">My Watchlist</h5>
+            <button class="btn btn-sm" onclick="clearWatchlist()" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--glass-border); border-radius: 8px; font-size: 0.6rem;">CLEAR ALL</button>
+        </div>
+        <div id="watchlistMovies" class="row justify-content-center">
+            <!-- Dynamically populated -->
+        </div>
+    </div>
+
     <div id="recentSection" class="mt-5 w-100" style="display: none; max-width: 900px;">
-        <h5 class="text-uppercase mb-4" style="letter-spacing: 0.1em; color: var(--text-muted); font-size: 0.8rem;">Recently Explored</h5>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="text-uppercase mb-0" style="letter-spacing: 0.1em; color: var(--text-muted); font-size: 0.8rem;">Recently Explored</h5>
+            <button class="btn btn-sm" onclick="clearRecent()" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--glass-border); border-radius: 8px; font-size: 0.6rem;">CLEAR ALL</button>
+        </div>
         <div id="recentMovies" class="row justify-content-center">
             <!-- Dynamically populated -->
         </div>

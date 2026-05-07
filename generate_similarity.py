@@ -1,5 +1,5 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import pickle
 import os
@@ -7,20 +7,17 @@ import os
 print("Loading movie data...")
 df = pd.read_csv('main_data.csv')
 
-print("Vectorizing movie features (Tfidf)...")
-# Using Tfidf as specified in the project documentation
-tfidf = TfidfVectorizer(stop_words='english')
-tfidf_matrix = tfidf.fit_transform(df['comb'])
+print("Vectorizing movie features (CountVectorizer)...")
+# Using CountVectorizer as it is more robust for short metadata strings
+cv = CountVectorizer(stop_words='english')
+count_matrix = cv.fit_transform(df['comb'])
 
 print("Computing cosine similarity matrix...")
-# This corresponds to 'transform.pkl' in the documentation
-sim = cosine_similarity(tfidf_matrix)
+sim = cosine_similarity(count_matrix)
 
 print("Saving models...")
-# Based on miniproj.docx Appendix A naming:
-# nlp_model.pkl -> vectorizer for recommendations
-# transform.pkl -> similarity matrix
-pickle.dump(tfidf, open('nlp_model.pkl', 'wb'))
+# We keep the same filenames for compatibility
+pickle.dump(cv, open('nlp_model.pkl', 'wb'))
 pickle.dump(sim, open('transform.pkl', 'wb'))
 
-print("Recommendation models generated successfully!")
+print("Recommendation models regenerated successfully with CountVectorizer!")

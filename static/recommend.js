@@ -1,6 +1,7 @@
 $(function() {
-  // Load Recently Viewed on Startup
+  // Load History and Watchlist on Startup
   displayRecentlyViewed();
+  displayWatchlist();
 
   // Button will be disabled until we type anything inside the input field
   const source = document.getElementById('autoComplete');
@@ -302,10 +303,8 @@ function get_movie_posters(arr,my_api_key){
 
 function saveToRecent(title, poster) {
     let recent = JSON.parse(localStorage.getItem('recentMovies') || '[]');
-    // Avoid duplicates
     recent = recent.filter(m => m.title !== title);
     recent.unshift({title, poster});
-    // Keep only last 4
     recent = recent.slice(0, 4);
     localStorage.setItem('recentMovies', JSON.stringify(recent));
     displayRecentlyViewed();
@@ -329,5 +328,124 @@ function displayRecentlyViewed() {
             `;
         });
         $('#recentMovies').html(html);
+    } else {
+        $('#recentSection').hide();
     }
+}
+
+function clearRecent() {
+    localStorage.removeItem('recentMovies');
+    $('#recentSection').fadeOut(300, function() {
+        $('#recentMovies').html('');
+    });
+}
+
+function openTrailer(movie_title) {
+    var my_api_key = '71bdf22d8b06fde7b7b67d170d00b0c8';
+    // First, search for the movie to get the correct current TMDB ID
+    $.ajax({
+        type: 'GET',
+        url: 'https://api.themoviedb.org/3/search/movie?api_key=' + my_api_key + '&query=' + movie_title,
+        success: function(searchRes) {
+            if (searchRes.results.length > 0) {
+                var movie_id = searchRes.results[0].id;
+                // Now get the videos for that ID
+                $.ajax({
+                    type: 'GET',
+                    url: 'https://api.themoviedb.org/3/movie/' + movie_id + '/videos?api_key=' + my_api_key,
+                    success: function(res) {
+                        var trailer = res.results.find(v => v.type === 'Trailer' && v.site === 'YouTube');
+                        if (trailer) {
+                            $('#trailerFrame').attr('src', 'https://www.youtube.com/embed/' + trailer.key + '?autoplay=1');
+                            $('#trailerModal').modal('show');
+                        } else {
+                            alert('No trailer found for this title.');
+                        }
+                    }
+                });
+            } else {
+                alert('Movie not found on TMDB.');
+            }
+        }
+    });
+}
+
+$('#trailerModal').on('hidden.bs.modal', function () {
+    $('#trailerFrame').attr('src', '');
+});
+
+function toggleWatchlist(title, poster) {
+    let watchlist = JSON.parse(localStorage.getItem('watchlistMovies') || '[]');
+    let index = watchlist.findIndex(m => m.title === title);
+    
+    if (index > -1) {
+        watchlist.splice(index, 1);
+        $('#watchlistBtn').html('<i class="fa fa-heart mr-2"></i> ADD TO WATCHLIST').removeClass('btn-danger').addClass('btn-outline-light');
+    } else {
+        watchlist.push({title, poster});
+        $('#watchlistBtn').html('<i class="fa fa-check mr-2"></i> IN WATCHLIST').removeClass('btn-outline-light').addClass('btn-danger');
+    }
+    
+    localStorage.setItem('watchlistMovies', JSON.stringify(watchlist));
+    displayWatchlist();
+}
+
+function displayWatchlist() {
+    let watchlist = JSON.parse(localStorage.getItem('watchlistMovies') || '[]');
+    if (watchlist.length > 0) {
+        $('#watchlistSection').fadeIn();
+        let html = '';
+        watchlist.forEach(m => {
+            html += `
+                <div class="col-6 col-md-3 mb-3">
+                    <div class="card h-100" style="cursor:pointer; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 16px; transition: 0.3s;" title="${m.title}" onclick="recommendcard(this)">
+                        <img src="${m.poster}" class="card-img-top" style="height: 120px; object-fit: cover; border-top-left-radius: 16px; border-top-right-radius: 16px;">
+                        <div class="p-2 text-center">
+                            <span style="font-size: 0.7rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: white;">${m.title}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        $('#watchlistMovies').html(html);
+    } else {
+        $('#watchlistSection').hide();
+    }
+}
+
+function clearWatchlist() {
+    localStorage.removeItem('watchlistMovies');
+    $('#watchlistSection').fadeOut(300, function() {
+        $('#watchlistMovies').html('');
+    });
+}
+
+function semanticSearch() {
+    var query = $('#moodSearch').val();
+    if (query == "") {
+        alert("Please describe your mood first!");
+        return;
+    }
+    $("#loader").fadeIn();
+    $.ajax({
+        type: 'POST',
+        url: '/semantic_search',
+        data: { 'query': query },
+        success: function(res) {
+            if (res.error) {
+                alert(res.error);
+                $("#loader").fadeOut();
+            } else {
+                load_details('71bdf22d8b06fde7b7b67d170d00b0c8', res[0]);
+            }
+        },
+        error: function() {
+            alert("Semantic search failed.");
+            $("#loader").fadeOut();
+        }
+    });
+}
+
+function tagSearch(tag) {
+    load_details('71bdf22d8b06fde7b7b67d170d00b0c8', tag);
 }

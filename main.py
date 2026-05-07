@@ -13,8 +13,13 @@ import os
 
 # --- MODEL LOADING (Aligned with miniproj.docx) ---
 # Sentiment Analysis Models
-clf = pickle.load(open('sentiment_model.pkl', 'rb'))
-vectorizer = pickle.load(open('sentiment_vectorizer.pkl', 'rb'))
+try:
+    clf = pickle.load(open('sentiment_model.pkl', 'rb'))
+    vectorizer = pickle.load(open('sentiment_vectorizer.pkl', 'rb'))
+except FileNotFoundError:
+    print("Sentiment models not found. Sentiment analysis will be disabled until retrain_sentiment.py is run.")
+    clf = None
+    vectorizer = None
 
 # Recommendation Engine Data (Pre-computed)
 similarity = None
@@ -29,12 +34,15 @@ data['movie_title_clean'] = data['movie_title'].str.lower().str.replace(r'[^a-zA
 
 def create_similarity():
     global similarity, tfidf_rec
-    if similarity is None or tfidf_rec is None:
-        print("Models not found. Generating in-memory...")
-        from sklearn.feature_extraction.text import CountVectorizer
-        tfidf_rec = CountVectorizer(stop_words='english')
-        tfidf_matrix = tfidf_rec.fit_transform(data['comb'])
-        similarity = cosine_similarity(tfidf_matrix)
+    if similarity is None:
+        if os.path.exists('transform.pkl'):
+             similarity = pickle.load(open('transform.pkl', 'rb'))
+        else:
+            print("Similarity model not found. Generating in-memory (this may take a moment)...")
+            from sklearn.feature_extraction.text import CountVectorizer
+            cv = CountVectorizer(stop_words='english')
+            tfidf_matrix = cv.fit_transform(data['comb'])
+            similarity = cosine_similarity(tfidf_matrix)
     return similarity
 
 def rcmd(m):
@@ -47,11 +55,12 @@ def rcmd(m):
         return 'Sorry! The movie you requested is not in our database.'
     else:
         movie_indx = data.loc[data['movie_title_clean']==m].index[0]
-        base_comb = set(data['comb'][movie_indx].split())
+        base_comb = set(str(data['comb'][movie_indx]).split())
         
         lst = list(enumerate(similarity[movie_indx]))
         lst = sorted(lst, key=lambda x: x[1], reverse=True)
         
+        # Get top 11 (including self)
         top_matches = lst[0:11] 
         results = []
         for i in range(len(top_matches)):
@@ -61,7 +70,7 @@ def rcmd(m):
                 title = data['movie_title'][idx]
                 
                 # Identify shared attributes
-                rec_comb = set(data['comb'][idx].split())
+                rec_comb = set(str(data['comb'][idx]).split())
                 shared = base_comb.intersection(rec_comb)
                 shared = [word.capitalize() for word in shared if len(word) > 3][:3]
                 shared_str = ", ".join(shared)
@@ -115,6 +124,11 @@ def similarity_route():
     else:
         m_str="---".join(rc)
         return m_str
+
+# --- GLOBAL REVIEWS STORAGE ---
+REVIEWS_FILE = 'user_reviews.csv'
+if not os.path.exists(REVIEWS_FILE):
+    pd.DataFrame(columns=['movie_id', 'review', 'sentiment']).to_csv(REVIEWS_FILE, index=False)
 
 @app.route("/recommend",methods=["POST"])
 def recommend():
@@ -170,57 +184,150 @@ def recommend():
     reviews_list = []
     reviews_status = []
     
-    browser_reviews = request.form.get('browser_reviews')
-    if browser_reviews:
-        try:
-            reviews_list = json.loads(browser_reviews)
-        except:
-            pass
+    # 1. Load "Global" User Reviews from CSV
+    try:
+        if os.path.exists(REVIEWS_FILE):
+            global_df = pd.read_csv(REVIEWS_FILE)
+            movie_global_reviews = global_df[global_df['movie_id'].astype(str) == str(movie_id)]
+            for _, row in movie_global_reviews.iterrows():
+                reviews_list.append(row['review'])
+                reviews_status.append(row['sentiment'])
+    except Exception as e:
+        print(f"Global Load Error: {e}")
 
+    # 2. SMART CACHE: Scrape IMDB if we have no global data or very few reviews
     if len(reviews_list) < 5:
         try:
-            target_id = imdb_id if imdb_id and str(imdb_id) != 'nan' else None
+            target_id = None
+            if imdb_id and str(imdb_id).lower() not in ['nan', 'none', 'null', '']:
+                target_id = str(imdb_id)
+            
+            # FALLBACK: If no ID, try to find ID by searching IMDB with title
+            if not target_id:
+                try:
+                    search_url = f'https://www.imdb.com/find?q={title.replace(" ","+")}&s=tt&ttype=ft'
+                    search_headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+                    s_resp = requests.get(search_url, headers=search_headers, timeout=5)
+                    if s_resp.status_code == 200:
+                        s_soup = bs.BeautifulSoup(s_resp.text, 'lxml')
+                        # Find first title link
+                        link = s_soup.find('a', href=re.compile(r'/title/tt\d+/'))
+                        if link:
+                            target_id = re.search(r'tt\d+', link['href']).group()
+                except:
+                    pass
+
             if target_id:
                 imdb_rev_url = f'https://www.imdb.com/title/{target_id}/reviews'
-                headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
-                resp = requests.get(imdb_rev_url, headers=headers, timeout=5)
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept-Language': 'en-US,en;q=0.9',
+                    'Referer': 'https://www.google.com/'
+                }
+                resp = requests.get(imdb_rev_url, headers=headers, timeout=10)
                 if resp.status_code == 200:
                     soup = bs.BeautifulSoup(resp.text, 'lxml')
+                    # IMDB has multiple containers for reviews, let's try the common ones
                     imdb_reviews = soup.find_all("div", {"class": "text show-more__control"})
+                    if not imdb_reviews:
+                         # Fallback selector for different page versions
+                         imdb_reviews = soup.select('.ipc-html-content-inner-div')
+                    
+                    new_persisted_reviews = []
                     for r in imdb_reviews:
-                        content = r.get_text()
-                        if content not in reviews_list:
+                        content = r.get_text(separator=' ').strip()
+                        if len(content) > 30 and content not in reviews_list:
+                            # Analyze sentiment for persistence
+                            sentiment = 'Good'
+                            if clf and vectorizer:
+                                try:
+                                    movie_vector = vectorizer.transform([content])
+                                    if hasattr(clf, "predict_proba"):
+                                        prob = clf.predict_proba(movie_vector)[0][1]
+                                        sentiment = 'Good' if prob > 0.5 else 'Bad'
+                                    else:
+                                        pred = clf.predict(movie_vector)
+                                        sentiment = 'Good' if str(pred[0]).lower() in ['1', 'positive', 'good'] else 'Bad'
+                                except:
+                                    pass
+                            
                             reviews_list.append(content)
+                            reviews_status.append(sentiment)
+                            new_persisted_reviews.append([str(movie_id), content, sentiment])
+                            if len(reviews_list) >= 15: break
+                    
+                    if new_persisted_reviews:
+                        persist_df = pd.DataFrame(new_persisted_reviews, columns=['movie_id', 'review', 'sentiment'])
+                        persist_df.to_csv(REVIEWS_FILE, mode='a', header=False, index=False)
         except Exception as e:
             print(f"IMDB Scrape Note: {e}")
 
-    if not reviews_list:
-        genre_lower = str(genres).lower()
-        if 'action' in genre_lower or 'adventure' in genre_lower:
-            reviews_list = [f"Breathtaking action in {title}!", f"Pacing was excellent.", f"Stylishly executed."]
-        else:
-            reviews_list = [f"A solid entry for {title}.", f"Impressed by the vision.", f"Engaging watch."]
-
-    for content in reviews_list[:15]:
+    # 3. Add Browser-passed reviews (TMDB) as fallback
+    browser_reviews = request.form.get('browser_reviews')
+    if browser_reviews:
         try:
-            movie_review_list = np.array([content])
-            movie_vector = vectorizer.transform(movie_review_list)
-            if hasattr(clf, "predict_proba"):
-                prob = clf.predict_proba(movie_vector)[0][1]
-                reviews_status.append('Good' if prob > 0.5 else 'Bad')
-            else:
-                pred = clf.predict(movie_vector)
-                is_pos = str(pred[0]).lower() in ['1', 'positive', 'good']
-                reviews_status.append('Good' if is_pos else 'Bad')
+            b_revs = json.loads(browser_reviews)
+            for br in b_revs:
+                clean_br = bs.BeautifulSoup(br, "lxml").get_text(separator=' ').strip()
+                if clean_br and clean_br not in reviews_list:
+                    reviews_list.append(clean_br)
         except:
-            reviews_status.append('Good')
+            pass
 
-    movie_reviews = {reviews_list[i]: reviews_status[i] for i in range(len(reviews_status))}     
+    # Final preparation for display
+    cleaned_reviews = []
+    final_status = []
+    
+    for i, rev in enumerate(reviews_list):
+        if rev not in cleaned_reviews:
+            cleaned_reviews.append(rev)
+            if i < len(reviews_status):
+                final_status.append(reviews_status[i])
+            else:
+                # Perform inference for browser-only reviews
+                if clf and vectorizer:
+                    movie_vector = vectorizer.transform([rev])
+                    prob = clf.predict_proba(movie_vector)[0][1] if hasattr(clf, "predict_proba") else 0.6
+                    final_status.append('Good' if prob > 0.5 else 'Bad')
+                else:
+                    final_status.append('Good')
+
+    movie_reviews = {cleaned_reviews[i]: final_status[i] for i in range(len(final_status))}     
     latency = round(time.time() - start_time, 4)
 
     return render_template('recommend.html',title=title,poster=poster,overview=overview,vote_average=vote_average,
         vote_count=vote_count,release_date=release_date,runtime=runtime,status=status,genres=genres,
         movie_cards=movie_cards,reviews=movie_reviews,casts=casts,cast_details=cast_details, latency=latency)
+
+@app.route("/predict_sentiment", methods=["POST"])
+def predict_sentiment():
+    if clf is None or vectorizer is None:
+        return jsonify({'error': 'Sentiment model not loaded'}), 500
+    
+    review = request.form.get('review')
+    movie_id = request.form.get('movie_id')
+    if not review:
+        return jsonify({'error': 'No review provided'}), 400
+    
+    try:
+        clean_text = bs.BeautifulSoup(review, "lxml").get_text()
+        movie_vector = vectorizer.transform([clean_text])
+        
+        if hasattr(clf, "predict_proba"):
+            prob = clf.predict_proba(movie_vector)[0][1]
+            sentiment = 'Good' if prob > 0.5 else 'Bad'
+        else:
+            pred = clf.predict(movie_vector)
+            sentiment = 'Good' if str(pred[0]).lower() in ['1', 'positive', 'good'] else 'Bad'
+        
+        # PERSIST GLOBALLY
+        if movie_id:
+            new_review = pd.DataFrame([[str(movie_id), clean_text, sentiment]], columns=['movie_id', 'review', 'sentiment'])
+            new_review.to_csv(REVIEWS_FILE, mode='a', header=False, index=False)
+            
+        return jsonify({'sentiment': sentiment, 'cleaned_review': clean_text})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True)

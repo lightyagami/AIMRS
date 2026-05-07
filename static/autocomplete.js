@@ -32,5 +32,8 @@ new autoComplete({
     },
     onSelection: feedback => {             // Action script onSelection event | (Optional)
         document.getElementById('autoComplete').value = feedback.selection.value;
+        // Automatically trigger recommendation on selection
+        $('.movie-button').attr('disabled', false);
+        $('.movie-button').click();
     }
 });
